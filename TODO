@@ -1,0 +1,24 @@
+P0:
+    - Compute time left for current day
+    - Allow user to customize calculation settings via a front end
+    - Add README.md
+
+P1:
+    - Recompute on change more elegantly (right now just every 500ms)
+    - SWITCH OVER to using Google Calendar API, alleviate a lot of hacks
+      dependent on front end, e.g.
+        - Handle events with duration <= 40 min (only start time displays, so
+          for now we're assuming they have duration 30 min)
+
+P2:
+    - Blinking red when above a certain threshold
+    - Stricter validation of times (right now just checks for 2 digits for
+      hours and minutes; should restrict to < 24, < 60)
+    - Support month view
+    - Handle overnight events more carefully (they would get double-counted
+      when the morning time is expanded/without the hide morning lab)
+
+P3:
+    - Add border or something to indicate current day better, since background
+      color change obscures the darker background which normally indicates it
+    - Accomodate non-military time

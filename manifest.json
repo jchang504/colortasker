@@ -1,0 +1,11 @@
+{
+  "manifest_version": 2,
+  "name": "Chronothea",
+  "version": "0.0",
+  "description": "Visualize busyness",
+  "content_scripts": [{
+      "matches": ["https://calendar.google.com/calendar/render*"],
+      "js": ["jquery.min.js", "chronothea.js"],
+      "run_at": "document_end"
+  }]
+}
