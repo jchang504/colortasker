@@ -106,8 +106,24 @@ function eventTimeSums() {
     return sums;
 }
 
+// Compute the unallocated time in the day, adjusting based on the current time
+// for today.
+// int allocatedTime : the amount of time (in minutes) allocated in the day.
+// boolean isToday : whether the day is today.
+// Returns: int.
+function computeExtraTime(allocatedTime, isToday) {
+    var extraTime = WORK_MINUTES - allocatedTime;
+    if (isToday) {
+        var date = new Date();
+        var minutesElapsed = date.getHours() * 60 + date.getMinutes();
+        extraTime -= minutesElapsed;
+    }
+    return extraTime;
+}
+
 // Format timeAmount into a 2-digit string, adding leading zero if needed.
-// REQUIRES: timeAmount >= 0.
+// Requires: timeAmount >= 0.
+// Returns: string.
 function formatTwoDigit(timeAmount) {
     var timeString = timeAmount.toString();
     if (timeAmount < 10) {
@@ -116,47 +132,64 @@ function formatTwoDigit(timeAmount) {
     return timeString;
 }
 
+// Compute the color for the day based on the extraTime.
+// int extraTime : the amount of extraTime in this day.
+// Returns : string.
+function computeColor(extraTime) {
+    var gAndBValue;
+    if (extraTime >= IDEAL_LEEWAY) {
+        gAndBValue = '255';
+    }
+    else {
+        if (extraTime < 0) {
+            // TODO: Add case to make blinking red when < 0.
+            extraTime = 0;
+        }
+        gAndBValue = Math.round(extraTime * SHADE_GRADIENT).toString();
+    }
+    return 'rgba(255,' + gAndBValue + ',' + gAndBValue + ',0.6)';
+}
+
+// Generate the CSS for adding the extra time label for day. Also include the
+// CSS for coloring the extra time label div.
+// int day : the index (from zero) of the day of the week.
+// boolean isToday : whether the day is today (for adjusting div index).
+// int extraTime : the amount of extra time on this day in minutes.
+// string color : the CSS value for background-color for this day.
+// Returns : string.
+function addExtraTimeLabel(day, isToday, extraTime, color) {
+    // Today column has an extra div for its shading.
+    var divIndex = isToday ? 2 : 1;
+    var topDivSelector = DAY_COLUMN_TOP_DIV_SELECTOR_VARIABLE.replace(
+            'columnIndex', (day+2).toString()).replace('divIndex', divIndex);
+    var sign = extraTime < 0 ? "-" : "";
+    var extraHours = Math.floor(Math.abs(extraTime) / 60);
+    var extraMinutes = Math.abs(extraTime) % 60;
+    var labelCss = topDivSelector + TOP_DIV_BEFORE_CSS.replace('extraTime',
+            sign + extraHours.toString() + ":" + formatTwoDigit(extraMinutes));
+    var colorCss = topDivSelector + '{background-color:' + color + '}';
+    return colorCss + labelCss;
+}
+
 // Change the background colors of the day columns based on timeSums, and add a
 // text label with the extra time at the top of each column.
 function colorDays(timeSums) {
     var css = '';
     for (var i = 0; i < timeSums.length; i++) {
         var colSelector = DAY_COLUMN_SELECTOR_PREFIX + parseInt(i);
-        // Today column has an extra div for its shading.
-        var divIndex;
+        var isToday = false;
         if ($(colSelector).parent().has(TODAY_COLUMN_SHADING_DIV_SELECTOR)
                 .size() > 0) {
-            divIndex = 2;
-        } else {
-            divIndex = 1;
+            isToday = true;
         }
-        var topDivSelector = DAY_COLUMN_TOP_DIV_SELECTOR_VARIABLE.replace(
-                'columnIndex', (i+2).toString()).replace('divIndex', divIndex);
-        var extraTime = WORK_MINUTES - timeSums[i];
-        var sign = extraTime < 0 ? "-" : "";
-        var extraHours = Math.floor(Math.abs(extraTime) / 60);
-        var extraMinutes = Math.abs(extraTime) % 60;
-        // Add extra time text label at top of column.
-        css += topDivSelector + TOP_DIV_BEFORE_CSS.replace('extraTime',
-                sign + extraHours.toString() + ":" +
-                formatTwoDigit(extraMinutes));
+        var extraTime = computeExtraTime(timeSums[i], isToday);
         // Color column.
-        var gAndBValue;
-        if (extraTime >= IDEAL_LEEWAY) {
-            gAndBValue = '255';
-        }
-        else {
-            if (extraTime < 0) {
-                // TODO: Add case to make blinking red when < 0.
-                extraTime = 0;
-            }
-            gAndBValue = Math.round(extraTime * SHADE_GRADIENT).toString();
-        }
-        var color = 'rgba(255,' + gAndBValue + ',' + gAndBValue + ',0.6)';
+        var color = computeColor(extraTime);
         css += colSelector + '{background-color:' + color + '}'
-        css += topDivSelector + '{background-color:' + color + '}'
-        $('#' + APP_NAME).text(css);
+        // Add extra time text label at top of column.
+        css += addExtraTimeLabel(i, isToday, extraTime, color);
     }
+    $('#' + APP_NAME).text(css);
 }
 
 // Compute the sums of event and task times and color the day columns.

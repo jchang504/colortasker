@@ -1,15 +1,15 @@
 P0:
-    - Compute time left for current day (Date.getTimezoneOffset, but also need
-      to know whether to include sleep, eating, and other times depending on
-      current time)
+    - Sleeping, eating, etc.:
+        - Set particular time thresholds (e.g. after 9am, assume sleep is done)
+          and event keywords (if event title includes "lunch", unallocate
+          standard time for lunch)
     - How to handle transition times?
+        - Maybe just add 10 minutes for each scheduled event, and consider this
+          time done 10 minutes after the event.
     - Allow user to customize calculation settings via a front end
     - Add README.md
 
 P1:
-    - Remove lunch/dinner allocated time when event has Lunch/Dinner in its
-      name
-    - Consider how to handle long overnight events e.g. Lock In
     - SWITCH OVER to using Google Calendar API, alleviate a lot of hacks
       dependent on front end, e.g.
         - Handle events with duration <= 40 min (only start time displays, so
