@@ -1,7 +1,4 @@
 P0:
-    - How to handle transition times?
-        - Maybe just add 10 minutes for each scheduled event, and consider this
-          time done 10 minutes after the event.
     - Allow user to customize calculation settings via a front end
     - Add README.md
 

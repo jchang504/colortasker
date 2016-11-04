@@ -22,21 +22,23 @@ var TOP_DIV_BEFORE_CSS =
         content: "extraTime" \
     }';
 
-// A best guess for the average duration of short events.
-var SHORT_EVENT_DURATION = 30;
-
 // TODO: Allow the user to customize these via a front end.
 var MINUTES_IN_DAY = 24 * 60;
 var DAILY_TASKS = [
     ["sleep", 8 * 60, 8 * 60],
     ["morning_prep", 20, 8 * 60 + 20],
+    ["walk_to_school", 20, 9 * 60 + 30],
     ["lunch", 40, 14 * 60],
     ["dinner", 40, 20 * 60],
+    ["walk_home", 20, 23 * 60 + 59],
     ["night_prep", 40, 23 * 60 + 59]
 ]
-
+// A best guess for the average duration of short events.
+var SHORT_EVENT_DURATION = 30;
+// Time needed to transition between events.
+var EVENT_TRANSITION_TIME = 10;
 // The ideal amount of unallocated extra time per day.
-var IDEAL_LEEWAY = 150;
+var IDEAL_LEEWAY = 100;
 // How much to increase G and B values of color per minute of extra time.
 var SHADE_GRADIENT = 255 / IDEAL_LEEWAY;
 
@@ -116,6 +118,7 @@ function dailyTaskTimeSum(day, isToday, currentTime) {
     var sum = 0;
     var jqScheduledEvents = $(DAY_COLUMN_SELECTOR_PREFIX + parseInt(day))
             .find(SCHEDULED_EVENT_TITLE_SELECTOR);
+    sum += jqScheduledEvents.size() * EVENT_TRANSITION_TIME;
     for (var i = 0; i < DAILY_TASKS.length; i++) {
         var taskTitle = DAILY_TASKS[i][0];
         var matchesScheduledEvent = false;
