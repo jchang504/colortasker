@@ -10,6 +10,7 @@ var DAY_COLUMN_SELECTOR_PREFIX = 'div#tgCol'
 // :not(:has... => Filter out reminders, which look similar but have an extra
 // span for the reminder icon.
 var SCHEDULED_EVENT_TIME_SELECTOR = 'div.tg-gutter dl.cbrd > dt > span.chip-caption:not(:has(span.cwci.rem-ic))'
+var SCHEDULED_EVENT_TITLE_SELECTOR = 'div.tg-gutter dl.cbrd > dd > div.cpchip span:first-child'
 var DAY_COLUMN_TOP_DIV_SELECTOR_VARIABLE = '#tgTable > tbody > tr:nth-child(2) > td:nth-child(columnIndex) > div:nth-child(divIndex)'
 var TODAY_COLUMN_SHADING_DIV_SELECTOR = 'div.tg-today'
 
@@ -21,23 +22,23 @@ var TOP_DIV_BEFORE_CSS =
         content: "extraTime" \
     }';
 
-// How much to increase G and B values of color per minute of extra time.
-var SHADE_GRADIENT = 2.833333333;  // 255 / 90 [90 minutes gives white].
-
 // A best guess for the average duration of short events.
 var SHORT_EVENT_DURATION = 30;
 
 // TODO: Allow the user to customize these via a front end.
 var MINUTES_IN_DAY = 24 * 60;
-var SLEEP = 8 * 60;
-var MEALS = 15 + 40 + 40;  // Breakfast + lunch + dinner.
-var MORNING_NIGHT_PREP = 20 + 40;
-var TRAVEL = 60;
-var EMAIL_FACEBOOK = 20;  // Average day; doesn't include special tasks.
-var WORK_MINUTES = MINUTES_IN_DAY - SLEEP - MEALS - MORNING_NIGHT_PREP - TRAVEL
-        - EMAIL_FACEBOOK;
+var DAILY_TASKS = [
+    ["sleep", 8 * 60, 8 * 60],
+    ["morning_prep", 20, 8 * 60 + 20],
+    ["lunch", 40, 14 * 60],
+    ["dinner", 40, 20 * 60],
+    ["night_prep", 40, 23 * 60 + 59]
+]
+
 // The ideal amount of unallocated extra time per day.
-var IDEAL_LEEWAY = 90;
+var IDEAL_LEEWAY = 150;
+// How much to increase G and B values of color per minute of extra time.
+var SHADE_GRADIENT = 255 / IDEAL_LEEWAY;
 
 // Sums and returns the total time of tasks (in minutes) for each day of the
 // week as an array.
@@ -106,16 +107,46 @@ function eventTimeSums() {
     return sums;
 }
 
+// Sums and returns the total time of DAILY_TASKS (in minutes) for day, taking
+// into account matching scheduled events (and the current time for today).
+// int day : the index (from zero) of the day of the week.
+// boolean isToday : whether the day is today.
+// int currentTime : the current time in minutes elapsed.
+function dailyTaskTimeSum(day, isToday, currentTime) {
+    var sum = 0;
+    var jqScheduledEvents = $(DAY_COLUMN_SELECTOR_PREFIX + parseInt(day))
+            .find(SCHEDULED_EVENT_TITLE_SELECTOR);
+    for (var i = 0; i < DAILY_TASKS.length; i++) {
+        var taskTitle = DAILY_TASKS[i][0];
+        var matchesScheduledEvent = false;
+        jqScheduledEvents.each(function() {
+            var eventTitle = $(this).text();
+            if (eventTitle.toLowerCase().indexOf(taskTitle) !== -1) {
+                matchesScheduledEvent = true;
+            }
+        });
+        // Unless scheduled event's title matches a daily task or, for today,
+        // current time is past daily task's end threshold, count the usual
+        // time for the daily task.
+        if (!matchesScheduledEvent && !(isToday &&
+            currentTime >= DAILY_TASKS[i][2])) {
+            sum += DAILY_TASKS[i][1];
+        }
+    }
+    return sum;
+}
+
 // Compute the unallocated time in the day, adjusting based on the current time
 // for today.
 // int allocatedTime : the amount of time (in minutes) allocated in the day.
 // boolean isToday : whether the day is today.
 // Returns: int.
-function computeExtraTime(allocatedTime, isToday) {
-    var extraTime = WORK_MINUTES - allocatedTime;
+function computeExtraTime(day, isToday, allocatedTime) {
+    var date = new Date();
+    var minutesElapsed = date.getHours() * 60 + date.getMinutes();
+    var extraTime = MINUTES_IN_DAY - allocatedTime -
+            dailyTaskTimeSum(day, isToday, minutesElapsed);
     if (isToday) {
-        var date = new Date();
-        var minutesElapsed = date.getHours() * 60 + date.getMinutes();
         extraTime -= minutesElapsed;
     }
     return extraTime;
@@ -182,7 +213,7 @@ function colorDays(timeSums) {
                 .size() > 0) {
             isToday = true;
         }
-        var extraTime = computeExtraTime(timeSums[i], isToday);
+        var extraTime = computeExtraTime(i, isToday, timeSums[i]);
         // Color column.
         var color = computeColor(extraTime);
         css += colSelector + '{background-color:' + color + '}'

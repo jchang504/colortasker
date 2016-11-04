@@ -1,8 +1,4 @@
 P0:
-    - Sleeping, eating, etc.:
-        - Set particular time thresholds (e.g. after 9am, assume sleep is done)
-          and event keywords (if event title includes "lunch", unallocate
-          standard time for lunch)
     - How to handle transition times?
         - Maybe just add 10 minutes for each scheduled event, and consider this
           time done 10 minutes after the event.
