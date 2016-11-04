@@ -18,7 +18,7 @@ var TOP_DIV_BEFORE_CSS =
         display: block; \
         text-align: center; \
         font-size: 3em; \
-        content: "extraMinutes" \
+        content: "extraTime" \
     }';
 
 // How much to increase G and B values of color per minute of extra time.
@@ -41,7 +41,7 @@ var IDEAL_LEEWAY = 90;
 
 // Sums and returns the total time of tasks (in minutes) for each day of the
 // week as an array.
-function taskTimeSums(){ 
+function taskTimeSums() { 
     var sums = [0, 0, 0, 0, 0, 0, 0];  // In minutes.
     // The indices of the days which still have more tasks to process. Needed
     // todeterm ine which day a task belongs to, since some rows have < 7 tds.
@@ -106,6 +106,16 @@ function eventTimeSums() {
     return sums;
 }
 
+// Format timeAmount into a 2-digit string, adding leading zero if needed.
+// REQUIRES: timeAmount >= 0.
+function formatTwoDigit(timeAmount) {
+    var timeString = timeAmount.toString();
+    if (timeAmount < 10) {
+        timeString = "0" + timeString;
+    }
+    return timeString;
+}
+
 // Change the background colors of the day columns based on timeSums, and add a
 // text label with the extra time at the top of each column.
 function colorDays(timeSums) {
@@ -122,21 +132,25 @@ function colorDays(timeSums) {
         }
         var topDivSelector = DAY_COLUMN_TOP_DIV_SELECTOR_VARIABLE.replace(
                 'columnIndex', (i+2).toString()).replace('divIndex', divIndex);
-        var extraMinutes = WORK_MINUTES - timeSums[i];
+        var extraTime = WORK_MINUTES - timeSums[i];
+        var sign = extraTime < 0 ? "-" : "";
+        var extraHours = Math.floor(Math.abs(extraTime) / 60);
+        var extraMinutes = Math.abs(extraTime) % 60;
         // Add extra time text label at top of column.
-        css += topDivSelector + TOP_DIV_BEFORE_CSS.replace('extraMinutes',
-                extraMinutes.toString());
+        css += topDivSelector + TOP_DIV_BEFORE_CSS.replace('extraTime',
+                sign + extraHours.toString() + ":" +
+                formatTwoDigit(extraMinutes));
         // Color column.
         var gAndBValue;
-        if (extraMinutes >= IDEAL_LEEWAY) {
+        if (extraTime >= IDEAL_LEEWAY) {
             gAndBValue = '255';
         }
         else {
-            if (extraMinutes < 0) {
+            if (extraTime < 0) {
                 // TODO: Add case to make blinking red when < 0.
-                extraMinutes = 0;
+                extraTime = 0;
             }
-            gAndBValue = Math.round(extraMinutes * SHADE_GRADIENT).toString();
+            gAndBValue = Math.round(extraTime * SHADE_GRADIENT).toString();
         }
         var color = 'rgba(255,' + gAndBValue + ',' + gAndBValue + ',0.6)';
         css += colSelector + '{background-color:' + color + '}'

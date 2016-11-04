@@ -1,14 +1,20 @@
 P0:
-    - Compute time left for current day
+    - Compute time left for current day (Date.getTimezoneOffset, but also need
+      to know whether to include sleep, eating, and other times depending on
+      current time)
+    - How to handle transition times?
     - Allow user to customize calculation settings via a front end
     - Add README.md
 
 P1:
-    - Recompute on change more elegantly (right now just every 500ms)
+    - Remove lunch/dinner allocated time when event has Lunch/Dinner in its
+      name
+    - Consider how to handle long overnight events e.g. Lock In
     - SWITCH OVER to using Google Calendar API, alleviate a lot of hacks
       dependent on front end, e.g.
         - Handle events with duration <= 40 min (only start time displays, so
           for now we're assuming they have duration 30 min)
+    - Recompute on change more elegantly (right now just every 500ms)
 
 P2:
     - Blinking red when above a certain threshold
