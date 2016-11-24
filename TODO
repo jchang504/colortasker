@@ -1,4 +1,5 @@
 P0:
+    - FIX: discount short events that have passed (new regex).
     - Allow user to customize calculation settings via a front end
     - Add README.md
 
@@ -14,8 +15,7 @@ P2:
     - Stricter validation of times (right now just checks for 2 digits for
       hours and minutes; should restrict to < 24, < 60)
     - Support month view
-    - Handle overnight events more carefully (they would get double-counted
-      when the morning time is expanded/without the hide morning lab)
+    - Handle overnight events (right now just upper bound end time at midnight)
 
 P3:
     - Add border or something to indicate current day better, since background

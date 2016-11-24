@@ -11,16 +11,23 @@ var DAY_COLUMN_SELECTOR_PREFIX = 'div#tgCol'
 // span for the reminder icon.
 var SCHEDULED_EVENT_TIME_SELECTOR = 'div.tg-gutter dl.cbrd > dt > span.chip-caption:not(:has(span.cwci.rem-ic))'
 var SCHEDULED_EVENT_TITLE_SELECTOR = 'div.tg-gutter dl.cbrd > dd > div.cpchip span:first-child'
-var DAY_COLUMN_TOP_DIV_SELECTOR_VARIABLE = '#tgTable > tbody > tr:nth-child(2) > td:nth-child(columnIndex) > div:nth-child(divIndex)'
+var COLUMN_INDEX_REPLACE_KEY = 'columnIndex';
+var DIV_INDEX_REPLACE_KEY = 'divIndex';
+var DAY_COLUMN_TOP_DIV_SELECTOR_VARIABLE =
+        '#tgTable > tbody > tr:nth-child(2) > td:nth-child(' +
+        COLUMN_INDEX_REPLACE_KEY + ') > div:nth-child(' + DIV_INDEX_REPLACE_KEY
+        + ')';
 var TODAY_COLUMN_SHADING_DIV_SELECTOR = 'div.tg-today'
 
+var EXTRA_TIME_REPLACE_KEY = 'extraTime';
 var TOP_DIV_BEFORE_CSS =
     ':before { \
         display: block; \
         text-align: center; \
         font-size: 3em; \
-        content: "extraTime" \
-    }';
+        content: "' +
+        EXTRA_TIME_REPLACE_KEY + 
+    '"}';
 
 // TODO: Allow the user to customize these via a front end.
 var MINUTES_IN_DAY = 24 * 60;
@@ -28,7 +35,7 @@ var DAILY_TASKS = [
     ["sleep", 8 * 60, 8 * 60],
     ["morning_prep", 20, 8 * 60 + 20],
     ["walk_to_school", 20, 9 * 60 + 30],
-    ["lunch", 40, 14 * 60],
+    ["lunch", 40, 13 * 60 + 30],
     ["dinner", 40, 20 * 60],
     ["walk_home", 20, 23 * 60 + 59],
     ["night_prep", 40, 23 * 60 + 59]
@@ -46,8 +53,8 @@ var SHADE_GRADIENT = 255 / IDEAL_LEEWAY;
 // week as an array.
 function taskTimeSums() { 
     var sums = [0, 0, 0, 0, 0, 0, 0];  // In minutes.
-    // The indices of the days which still have more tasks to process. Needed
-    // todeterm ine which day a task belongs to, since some rows have < 7 tds.
+    // The indices of the days which still have more tasks to process. Need
+    // to determine which day a task belongs to, since some rows have < 7 tds.
     var stillHaveTasks = [0, 1, 2, 3, 4, 5, 6];
     $(ALL_DAY_EVENTS_ROW_SELECTOR).each(function() {
         // The relative columns which had their last task in this row.
@@ -76,37 +83,43 @@ function taskTimeSums() {
     return sums;
 }
 
-// Sums and returns the total time of scheduled events (in minutes) for each
-// day of the week as an array.
-function eventTimeSums() {
-    var sums = [0, 0, 0, 0, 0, 0, 0];  // In minutes.
-    for (var i = 0; i < sums.length; i++) {
-        var jqDayColumn = $(DAY_COLUMN_SELECTOR_PREFIX + parseInt(i));
-        jqDayColumn.find(SCHEDULED_EVENT_TIME_SELECTOR).each(function() {
-            // Add regular, > 40 min scheduled events
-            var eventMatch = $(this).text().match(EVENT_TIME_REGEX);
-            if (eventMatch !== null) {
-                var startMinutes = parseInt(eventMatch[1]) * 60 +
-                        parseInt(eventMatch[2]);
-                var endMinutes = parseInt(eventMatch[3]) * 60 +
-                        parseInt(eventMatch[4]);
-                // Handle overnight events: add time to next day.
-                if (endMinutes < startMinutes) {
-                    if (i < sums.length-1) {
-                        sums[i+1] += endMinutes;
-                    }
-                    endMinutes = 24 * 60;  // Change end to midnight.
-                }
-                sums[i] += endMinutes - startMinutes;
+// Sums and returns the total time of scheduled events (in minutes) for day,
+// taking into account the currentTime if isToday.
+// int day : the index (from zero) of the day of the week.
+// boolean isToday : whether the day is today.
+// int currentTime : the current time in minutes elapsed.
+function scheduledEventTimeSum(day, isToday, currentTime) {
+    var sum = 0;
+    var jqDayColumn = $(DAY_COLUMN_SELECTOR_PREFIX + parseInt(day));
+    jqDayColumn.find(SCHEDULED_EVENT_TIME_SELECTOR).each(function() {
+        // Add regular, > 40 min scheduled events
+        var eventMatch = $(this).text().match(EVENT_TIME_REGEX);
+        if (eventMatch !== null) {
+            var startMinutes = parseInt(eventMatch[1]) * 60 +
+                    parseInt(eventMatch[2]);
+            var endMinutes = parseInt(eventMatch[3]) * 60 +
+                    parseInt(eventMatch[4]);
+            // For overnight events, upper bound end time by midnight.
+            if (endMinutes < startMinutes) {
+                endMinutes = 24 * 60;
             }
-            // Add short, <= 40 min scheduled events as SHORT_EVENT_DURATION.
-            var shortMatch = $(this).text().match(SHORT_EVENT_TIME_REGEX);
-            if (shortMatch !== null) {
-                sums[i] += SHORT_EVENT_DURATION;
+            // Add transition time.
+            endMinutes += EVENT_TRANSITION_TIME;
+            // If isToday, adjust event duration based on the currentTime.
+            if (isToday) {
+                startMinutes = Math.max(startMinutes, Math.min(currentTime,
+                        endMinutes));
             }
-        });
-    }
-    return sums;
+            sum += endMinutes - startMinutes;
+        }
+        // Add short, <= 40 min scheduled events as SHORT_EVENT_DURATION.
+        // TODO: Match startingTime and compare to currentTime.
+        var shortMatch = $(this).text().match(SHORT_EVENT_TIME_REGEX);
+        if (shortMatch !== null) {
+            sum += SHORT_EVENT_DURATION;
+        }
+    });
+    return sum;
 }
 
 // Sums and returns the total time of DAILY_TASKS (in minutes) for day, taking
@@ -118,7 +131,6 @@ function dailyTaskTimeSum(day, isToday, currentTime) {
     var sum = 0;
     var jqScheduledEvents = $(DAY_COLUMN_SELECTOR_PREFIX + parseInt(day))
             .find(SCHEDULED_EVENT_TITLE_SELECTOR);
-    sum += jqScheduledEvents.size() * EVENT_TRANSITION_TIME;
     for (var i = 0; i < DAILY_TASKS.length; i++) {
         var taskTitle = DAILY_TASKS[i][0];
         var matchesScheduledEvent = false;
@@ -141,22 +153,22 @@ function dailyTaskTimeSum(day, isToday, currentTime) {
 
 // Compute the unallocated time in the day, adjusting based on the current time
 // for today.
-// int allocatedTime : the amount of time (in minutes) allocated in the day.
+// int day : the index (from zero) of the day of the week.
 // boolean isToday : whether the day is today.
+// int currentTime : the current time in minutes elapsed.
+// int allocatedTime : the amount of time (in minutes) allocated in the day.
 // Returns: int.
-function computeExtraTime(day, isToday, allocatedTime) {
-    var date = new Date();
-    var minutesElapsed = date.getHours() * 60 + date.getMinutes();
-    var extraTime = MINUTES_IN_DAY - allocatedTime -
-            dailyTaskTimeSum(day, isToday, minutesElapsed);
+function computeExtraTime(day, isToday, currentTime, allocatedTime) {
+    var extraTime = MINUTES_IN_DAY - allocatedTime;
     if (isToday) {
-        extraTime -= minutesElapsed;
+        extraTime -= currentTime;
     }
     return extraTime;
 }
 
 // Format timeAmount into a 2-digit string, adding leading zero if needed.
 // Requires: timeAmount >= 0.
+// int timeAmount : a number in [0, 60].
 // Returns: string.
 function formatTwoDigit(timeAmount) {
     var timeString = timeAmount.toString();
@@ -195,28 +207,40 @@ function addExtraTimeLabel(day, isToday, extraTime, color) {
     // Today column has an extra div for its shading.
     var divIndex = isToday ? 2 : 1;
     var topDivSelector = DAY_COLUMN_TOP_DIV_SELECTOR_VARIABLE.replace(
-            'columnIndex', (day+2).toString()).replace('divIndex', divIndex);
+            COLUMN_INDEX_REPLACE_KEY, (day+2).toString()).replace(
+            DIV_INDEX_REPLACE_KEY, divIndex);
     var sign = extraTime < 0 ? "-" : "";
     var extraHours = Math.floor(Math.abs(extraTime) / 60);
     var extraMinutes = Math.abs(extraTime) % 60;
-    var labelCss = topDivSelector + TOP_DIV_BEFORE_CSS.replace('extraTime',
-            sign + extraHours.toString() + ":" + formatTwoDigit(extraMinutes));
+    var labelCss = topDivSelector + TOP_DIV_BEFORE_CSS.replace(
+            EXTRA_TIME_REPLACE_KEY, sign + extraHours.toString() + ":" +
+            formatTwoDigit(extraMinutes));
     var colorCss = topDivSelector + '{background-color:' + color + '}';
     return colorCss + labelCss;
 }
 
-// Change the background colors of the day columns based on timeSums, and add a
-// text label with the extra time at the top of each column.
-function colorDays(timeSums) {
+// Get the current local time in minutes elapsed since start of day.
+// Returns : int.
+function getCurrentTimeMinutes() {
+    var date = new Date();
+    return date.getHours() * 60 + date.getMinutes();
+}
+
+// Change the background colors of the day columns and add a text label with
+// the extra time at the top of each column.
+function colorDays() {
+    var taskSums = taskTimeSums();
     var css = '';
-    for (var i = 0; i < timeSums.length; i++) {
+    for (var i = 0; i < taskSums.length; i++) {
         var colSelector = DAY_COLUMN_SELECTOR_PREFIX + parseInt(i);
-        var isToday = false;
-        if ($(colSelector).parent().has(TODAY_COLUMN_SHADING_DIV_SELECTOR)
-                .size() > 0) {
-            isToday = true;
-        }
-        var extraTime = computeExtraTime(i, isToday, timeSums[i]);
+        var isToday = $(colSelector).parent()
+                .has(TODAY_COLUMN_SHADING_DIV_SELECTOR).size() > 0;
+        var currentTime = getCurrentTimeMinutes();
+        var allocatedTime = taskSums[i];
+        allocatedTime += scheduledEventTimeSum(i, isToday, currentTime);
+        allocatedTime += dailyTaskTimeSum(i, isToday, currentTime);
+        var extraTime = computeExtraTime(i, isToday, currentTime,
+                allocatedTime);
         // Color column.
         var color = computeColor(extraTime);
         css += colSelector + '{background-color:' + color + '}'
@@ -226,27 +250,16 @@ function colorDays(timeSums) {
     $('#' + APP_NAME).text(css);
 }
 
-// Compute the sums of event and task times and color the day columns.
-function updateColors() {
-    var timeSums = eventTimeSums();
-    var taskSums = taskTimeSums();
-    for (var i = 0; i < timeSums.length; i++) {
-        timeSums[i] += taskSums[i];
-    }
-    colorDays(timeSums);
-}
-
 $(window).load(function() {
     // Poll every 100ms until task time sums are positive (all-day events have
     // been loaded). They seem to always load later than scheduled events.
     var pollTasksLoaded = setInterval(function() {
-        var d = new Date();
-        var timeSums = taskTimeSums();
-        if (timeSums.reduce((x, y) => x + y, 0) > 0) {
+        var taskSums = taskTimeSums();
+        if (taskSums.reduce((x, y) => x + y, 0) > 0) {
             // Initialize <style> tag.
             $('head').append('<style id="' + APP_NAME +
                     '" type="text/css"></style>');
-            updateColors();
+            colorDays();
             clearInterval(pollTasksLoaded);
         }
         else {
@@ -255,5 +268,5 @@ $(window).load(function() {
     }, 100);
 
     // Continuously re-compute and update colors every 500ms.
-    var continuousUpdate = setInterval(updateColors, 500);
+    var continuousUpdate = setInterval(colorDays, 500);
 });
