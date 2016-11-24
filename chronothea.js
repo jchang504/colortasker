@@ -113,10 +113,23 @@ function scheduledEventTimeSum(day, isToday, currentTime) {
             sum += endMinutes - startMinutes;
         }
         // Add short, <= 40 min scheduled events as SHORT_EVENT_DURATION.
-        // TODO: Match startingTime and compare to currentTime.
         var shortMatch = $(this).text().match(SHORT_EVENT_TIME_REGEX);
         if (shortMatch !== null) {
-            sum += SHORT_EVENT_DURATION;
+            // TODO: This duplicates logic, but won't need text parsing once we
+            // move to Calendar API anyway.
+            var startMinutes = parseInt(shortMatch[1]) * 60 +
+                    parseInt(shortMatch[2]);
+            var endMinutes = startMinutes + SHORT_EVENT_DURATION;
+            // For overnight events, upper bound end time by midnight.
+            if (endMinutes < startMinutes) {
+                endMinutes = 24 * 60;
+            }
+            // If isToday, adjust event duration based on the currentTime.
+            if (isToday) {
+                startMinutes = Math.max(startMinutes, Math.min(currentTime,
+                        endMinutes));
+            }
+            sum += endMinutes - startMinutes;
         }
     });
     return sum;

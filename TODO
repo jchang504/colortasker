@@ -1,5 +1,4 @@
 P0:
-    - FIX: discount short events that have passed (new regex).
     - Allow user to customize calculation settings via a front end
     - Add README.md
 
