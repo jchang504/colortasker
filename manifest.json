@@ -1,11 +1,19 @@
 {
-  "manifest_version": 2,
-  "name": "Chronothea",
-  "version": "0.0",
-  "description": "Visualize busyness",
-  "content_scripts": [{
-      "matches": ["https://calendar.google.com/calendar/render*"],
-      "js": ["jquery.min.js", "chronothea.js"],
-      "run_at": "document_end"
-  }]
+    "manifest_version": 2,
+    "name": "Chronothea",
+    "version": "0.0",
+    "description": "Visualize busyness",
+    "permissions": [
+        "storage"
+    ],
+    "content_scripts": [{
+        "matches": ["https://calendar.google.com/calendar/render*"],
+        "js": ["jquery-3.1.1.slim.min.js", "chronothea.js"],
+        "run_at": "document_end"
+    }],
+    "options_ui": {
+        "page": "options.html",
+        "chrome_style": true
+    },
+    "options_page": "options.html"
 }

@@ -29,25 +29,20 @@ var TOP_DIV_BEFORE_CSS =
         EXTRA_TIME_REPLACE_KEY + 
     '"}';
 
-// TODO: Allow the user to customize these via a front end.
 var MINUTES_IN_DAY = 24 * 60;
-var DAILY_TASKS = [
-    ["sleep", 8 * 60, 8 * 60],
-    ["morning_prep", 20, 8 * 60 + 20],
-    ["walk_to_school", 20, 9 * 60 + 30],
-    ["lunch", 40, 13 * 60 + 30],
-    ["dinner", 40, 20 * 60],
-    ["walk_home", 20, 23 * 60 + 59],
-    ["night_prep", 40, 23 * 60 + 59]
-]
-// A best guess for the average duration of short events.
-var SHORT_EVENT_DURATION = 30;
-// Time needed to transition between events.
-var EVENT_TRANSITION_TIME = 10;
+
+// Set from user's options.
+
+// An array of objects with name, duration, and completedBy time.
+var DAILY_TASKS;
 // The ideal amount of unallocated extra time per day.
-var IDEAL_LEEWAY = 100;
+var IDEAL_LEEWAY;
+// A best guess for the average duration of short events.
+var SHORT_EVENT_DURATION;
+// Time needed to transition between events.
+var EVENT_TRANSITION_TIME;
 // How much to increase G and B values of color per minute of extra time.
-var SHADE_GRADIENT = 255 / IDEAL_LEEWAY;
+var SHADE_GRADIENT;
 
 // Sums and returns the total time of tasks (in minutes) for each day of the
 // week as an array.
@@ -145,7 +140,7 @@ function dailyTaskTimeSum(day, isToday, currentTime) {
     var jqScheduledEvents = $(DAY_COLUMN_SELECTOR_PREFIX + parseInt(day))
             .find(SCHEDULED_EVENT_TITLE_SELECTOR);
     for (var i = 0; i < DAILY_TASKS.length; i++) {
-        var taskTitle = DAILY_TASKS[i][0];
+        var taskTitle = DAILY_TASKS[i].name;
         var matchesScheduledEvent = false;
         jqScheduledEvents.each(function() {
             var eventTitle = $(this).text();
@@ -157,8 +152,8 @@ function dailyTaskTimeSum(day, isToday, currentTime) {
         // current time is past daily task's end threshold, count the usual
         // time for the daily task.
         if (!matchesScheduledEvent && !(isToday &&
-            currentTime >= DAILY_TASKS[i][2])) {
-            sum += DAILY_TASKS[i][1];
+            currentTime >= DAILY_TASKS[i].completedBy)) {
+            sum += DAILY_TASKS[i].duration;
         }
     }
     return sum;
@@ -247,7 +242,7 @@ function colorDays() {
     for (var i = 0; i < taskSums.length; i++) {
         var colSelector = DAY_COLUMN_SELECTOR_PREFIX + parseInt(i);
         var isToday = $(colSelector).parent()
-                .has(TODAY_COLUMN_SHADING_DIV_SELECTOR).size() > 0;
+                .has(TODAY_COLUMN_SHADING_DIV_SELECTOR).length > 0;
         var currentTime = getCurrentTimeMinutes();
         var allocatedTime = taskSums[i];
         allocatedTime += scheduledEventTimeSum(i, isToday, currentTime);
@@ -263,23 +258,23 @@ function colorDays() {
     $('#' + APP_NAME).text(css);
 }
 
-$(window).load(function() {
-    // Poll every 100ms until task time sums are positive (all-day events have
-    // been loaded). They seem to always load later than scheduled events.
-    var pollTasksLoaded = setInterval(function() {
-        var taskSums = taskTimeSums();
-        if (taskSums.reduce((x, y) => x + y, 0) > 0) {
-            // Initialize <style> tag.
-            $('head').append('<style id="' + APP_NAME +
-                    '" type="text/css"></style>');
-            colorDays();
-            clearInterval(pollTasksLoaded);
-        }
-        else {
-            console.log('All-day events not loaded yet, waiting 100ms.');
-        }
-    }, 100);
+$(window).on("load", function() {
+    $('head').append('<style id="' + APP_NAME + '" type="text/css"></style>');
 
-    // Continuously re-compute and update colors every 500ms.
-    var continuousUpdate = setInterval(colorDays, 500);
+    // Load user's options before we can compute free times.
+    chrome.storage.sync.get({
+        dailyTasks: [],
+        leeway: 100,
+        shortEventDuration: 30,
+        transitionTime: 10
+    }, function(items) {
+        // Set calculation options.
+        DAILY_TASKS = items.dailyTasks;
+        IDEAL_LEEWAY = items.leeway;
+        SHORT_EVENT_DURATION = items.shortEventDuration;
+        EVENT_TRANSITION_TIME = items.transitionTime;
+        SHADE_GRADIENT = 255 / IDEAL_LEEWAY;
+        // Continuously re-compute and update colors every 500ms.
+        var continuousUpdate = setInterval(colorDays, 500);
+    });
 });
