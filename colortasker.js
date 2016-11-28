@@ -1,4 +1,4 @@
-var APP_NAME = 'chronothea'
+var APP_NAME = 'colortasker'
 
 var TASK_REGEX = /\((\d{1,2})(?:;(\d{2}))?\) .*/;
 var EVENT_TIME_REGEX = /(\d{2}):(\d{2}) – (\d{2}):(\d{2}) /;

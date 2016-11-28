@@ -1,14 +1,15 @@
 {
     "manifest_version": 2,
-    "name": "Chronothea",
-    "version": "0.0",
-    "description": "Visualize busyness",
+    "name": "Colortasker",
+    "version": "1.0.0",
+    "version_name": "1.0.0 beta",
+    "description": "Compute and visualize busyness in Google Calendar",
     "permissions": [
         "storage"
     ],
     "content_scripts": [{
         "matches": ["https://calendar.google.com/calendar/render*"],
-        "js": ["jquery-3.1.1.slim.min.js", "chronothea.js"],
+        "js": ["jquery-3.1.1.slim.min.js", "colortasker.js"],
         "run_at": "document_end"
     }],
     "options_ui": {
