@@ -140,7 +140,7 @@ function dailyTaskTimeSum(day, isToday, currentTime) {
     var jqScheduledEvents = $(DAY_COLUMN_SELECTOR_PREFIX + parseInt(day))
             .find(SCHEDULED_EVENT_TITLE_SELECTOR);
     for (var i = 0; i < DAILY_TASKS.length; i++) {
-        var taskTitle = DAILY_TASKS[i].name;
+        var taskTitle = DAILY_TASKS[i].name.toLowerCase();
         var matchesScheduledEvent = false;
         jqScheduledEvents.each(function() {
             var eventTitle = $(this).text();
