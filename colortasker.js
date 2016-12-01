@@ -28,6 +28,18 @@ var TOP_DIV_BEFORE_CSS =
         content: "' +
         EXTRA_TIME_REPLACE_KEY + 
     '"}';
+var BLINKING_KEYFRAMES_CSS =
+    '@keyframes blinking { \
+        0% { background-color: rgba(255, 0, 0, 0.6); } \
+        50% { background-color: white; } \
+        100% { background-color: rgba(255, 0, 0, 0.6); } \
+    }';
+var BLINKING_ANIMATION_CSS =
+    ' \
+    animation-name: blinking; \
+    animation-duration: 1s; \
+    animation-iteration-count: infinite \
+    ';
 
 var MINUTES_IN_DAY = 24 * 60;
 
@@ -191,17 +203,18 @@ function formatTwoDigit(timeAmount) {
 // Returns : string.
 function computeColor(extraTime) {
     var gAndBValue;
+    var blinkingCss = '';
     if (extraTime >= IDEAL_LEEWAY) {
         gAndBValue = '255';
     }
     else {
         if (extraTime < 0) {
-            // TODO: Add case to make blinking red when < 0.
             extraTime = 0;
+            blinkingCss = ';' + BLINKING_ANIMATION_CSS;
         }
         gAndBValue = Math.round(extraTime * SHADE_GRADIENT).toString();
     }
-    return 'rgba(255,' + gAndBValue + ',' + gAndBValue + ',0.6)';
+    return 'rgba(255,' + gAndBValue + ',' + gAndBValue + ',0.6)' + blinkingCss;
 }
 
 // Generate the CSS for adding the extra time label for day. Also include the
@@ -238,7 +251,7 @@ function getCurrentTimeMinutes() {
 // the extra time at the top of each column.
 function colorDays() {
     var taskSums = taskTimeSums();
-    var css = '';
+    var css = BLINKING_KEYFRAMES_CSS;  // Start with keyframes defined.
     for (var i = 0; i < taskSums.length; i++) {
         var colSelector = DAY_COLUMN_SELECTOR_PREFIX + parseInt(i);
         var isToday = $(colSelector).parent()

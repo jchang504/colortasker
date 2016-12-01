@@ -9,7 +9,6 @@ P1:
     - Recompute on change more elegantly (right now just every 500ms)
 
 P2:
-    - Blinking red when above a certain threshold
     - Stricter validation of times (right now just checks for 2 digits for
       hours and minutes; should restrict to < 24, < 60)
     - Support month view
