@@ -9,6 +9,10 @@ var INPUT_TIME_SELECTOR = 'input[type="time"]';
 var INPUT_LEEWAY_SELECTOR = 'input[name="leeway"]';
 var INPUT_SHORT_EVENT_DURATION_SELECTOR = 'input[name="short_event_duration"]';
 var INPUT_TRANSITION_TIME_SELECTOR = 'input[name="transition_time"]';
+var INPUT_BLINK_SELECTOR = 'input[name="blink"]';
+var INPUT_COLOR_R = 'input[name="color_r"]';
+var INPUT_COLOR_G = 'input[name="color_g"]';
+var INPUT_COLOR_B = 'input[name="color_b"]';
 var OPTIONS_FORM_SELECTOR = '#options';
 var ADD_DAILY_TASK_BUTTON_SELECTOR = '#add_daily_task';
 var SAVE_BUTTON_SELECTOR = '#save';
@@ -52,7 +56,6 @@ function getDailyTasks() {
 
 function restoreDailyTasks(dailyTasks) {
     for (var i = 0; i < dailyTasks.length; i++) {
-        console.log(dailyTasks[i]);
         addDailyTask();
         var jqDailyTaskRow = $(DAILY_TASK_LAST_ROW_SELECTOR);
         jqDailyTaskRow.find(INPUT_TEXT_SELECTOR).val(dailyTasks[i].name);
@@ -62,8 +65,7 @@ function restoreDailyTasks(dailyTasks) {
             return (timeAmount < 10 ? '0' : '') + timeAmount.toString();
         };
         var time = addLeadingZero(Math.floor(completedBy / 60)) + ':' +
-                addLeadingZero(completedBy % 60) + ":00";
-        console.log(time);
+                addLeadingZero(completedBy % 60) + ':00';
         jqDailyTaskRow.find(INPUT_TIME_SELECTOR).val(time);
     }
 }
@@ -75,11 +77,19 @@ function saveOptions() {
     var shortEventDuration = parseInt($(INPUT_SHORT_EVENT_DURATION_SELECTOR)
             .val());
     var transitionTime = parseInt($(INPUT_TRANSITION_TIME_SELECTOR).val());
+    var blink = $(INPUT_BLINK_SELECTOR).is(':checked');
+    var colorR = parseInt($(INPUT_COLOR_R).val());
+    var colorG = parseInt($(INPUT_COLOR_G).val());
+    var colorB = parseInt($(INPUT_COLOR_B).val());
     chrome.storage.sync.set({
         dailyTasks: dailyTasks,
         leeway: leeway,
         shortEventDuration: shortEventDuration,
-        transitionTime: transitionTime
+        transitionTime: transitionTime,
+        blink: blink,
+        colorR: colorR,
+        colorG: colorG,
+        colorB: colorB
     }, function() {
         // Disable save button to indicate that options are saved.
         $(SAVE_BUTTON_SELECTOR).prop(DISABLED, true);
@@ -94,12 +104,20 @@ function restoreOptions() {
         dailyTasks: [],
         leeway: 100,
         shortEventDuration: 30,
-        transitionTime: 10
+        transitionTime: 10,
+        blink: true,
+        colorR: 255,
+        colorG: 0,
+        colorB: 0
     }, function(items) {
         restoreDailyTasks(items.dailyTasks);
         $(INPUT_LEEWAY_SELECTOR).val(items.leeway);
         $(INPUT_SHORT_EVENT_DURATION_SELECTOR).val(items.shortEventDuration);
         $(INPUT_TRANSITION_TIME_SELECTOR).val(items.transitionTime);
+        $(INPUT_BLINK_SELECTOR).prop('checked', items.blink);
+        $(INPUT_COLOR_R).val(items.colorR);
+        $(INPUT_COLOR_G).val(items.colorG);
+        $(INPUT_COLOR_B).val(items.colorB);
     });
 }
 

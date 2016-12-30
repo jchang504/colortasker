@@ -1,8 +1,8 @@
 {
     "manifest_version": 2,
     "name": "Colortasker",
-    "version": "1.0.2",
-    "version_name": "1.0.2 beta",
+    "version": "1.0.3",
+    "version_name": "1.0.3 beta",
     "description": "Compute and visualize busyness in Google Calendar",
     "permissions": [
         "storage"

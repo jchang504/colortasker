@@ -6,6 +6,7 @@ P1:
       dependent on front end, e.g.
         - Handle events with duration <= 40 min (only start time displays, so
           for now we're assuming they have duration 30 min)
+    - Allow customizing day start/end time (beyond midnight)
     - Recompute on change more elegantly (right now just every 500ms)
 
 P2:

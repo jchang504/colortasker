@@ -9,6 +9,12 @@
         #add_daily_task {
             margin-top: 10px;
         }
+        label.checkbox {
+            margin-left: 5px;
+        }
+        input.pixel {
+            width: 45px;
+        }
         #save {
             float: right;
             margin-bottom: 10px;
@@ -64,6 +70,22 @@
                     max="1440"></td>
         </tr>
     </tbody></table>
+
+    <h1>Other options</h1>
+    <div>
+        <input type="checkbox" name="blink">
+        <label class="checkbox">Blink days with negative free time</label>
+    </div>
+    <h4>Customize shade gradient color (specify maximum shade):</h4>
+    <label>R: </label>
+    <input required class="pixel" type="number" name="color_r" min="0"
+            max="255">
+    <label>G: </label>
+    <input required class="pixel" type="number" name="color_g" min="0"
+            max="255">
+    <label>B: </label>
+    <input required class="pixel" type="number" name="color_b" min="0"
+            max="255">
 
     <input id="save" type="submit" value="Save all">
     </form>
