@@ -6,6 +6,8 @@ var INPUT_SELECTOR = 'input';
 var INPUT_TEXT_SELECTOR = 'input[type="text"]';
 var INPUT_NUMBER_SELECTOR = 'input[type="number"]';
 var INPUT_TIME_SELECTOR = 'input[type="time"]';
+var INPUT_START_OF_DAY_SELECTOR = 'input[name="start_of_day"]';
+var INPUT_END_OF_DAY_SELECTOR = 'input[name="end_of_day"]';
 var INPUT_LEEWAY_SELECTOR = 'input[name="leeway"]';
 var INPUT_SHORT_EVENT_DURATION_SELECTOR = 'input[name="short_event_duration"]';
 var INPUT_TRANSITION_TIME_SELECTOR = 'input[name="transition_time"]';
@@ -27,6 +29,19 @@ var DAILY_TASK_HTML = ' \
     </tr> \
 ';
 
+function timeStringToMinutes(timeString) {
+    var parts = timeString.split(':');
+    return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+}
+
+function minutesToTimeString(minutes) {
+    var addLeadingZero = function(timeAmount) {
+        return (timeAmount < 10 ? '0' : '') + timeAmount.toString();
+    };
+    return addLeadingZero(Math.floor(minutes / 60)) + ':' +
+            addLeadingZero(minutes % 60) + ':00';
+}
+
 function addDailyTask() {
     $(DAILY_TASKS_TABLE_SELECTOR).append(DAILY_TASK_HTML);
     var jqDailyTaskRow = $(DAILY_TASK_LAST_ROW_SELECTOR);
@@ -43,8 +58,8 @@ function getDailyTasks() {
         var jqThis = $(this);
         var name = jqThis.find(INPUT_TEXT_SELECTOR).val();
         var duration = parseInt(jqThis.find(INPUT_NUMBER_SELECTOR).val());
-        var time = jqThis.find(INPUT_TIME_SELECTOR).val().split(':');
-        var completedBy = parseInt(time[0]) * 60 + parseInt(time[1]);
+        var completedBy =
+                timeStringToMinutes(jqThis.find(INPUT_TIME_SELECTOR).val());
         dailyTasks.push({
             name: name,
             duration: duration,
@@ -60,13 +75,8 @@ function restoreDailyTasks(dailyTasks) {
         var jqDailyTaskRow = $(DAILY_TASK_LAST_ROW_SELECTOR);
         jqDailyTaskRow.find(INPUT_TEXT_SELECTOR).val(dailyTasks[i].name);
         jqDailyTaskRow.find(INPUT_NUMBER_SELECTOR).val(dailyTasks[i].duration);
-        var completedBy = dailyTasks[i].completedBy;
-        var addLeadingZero = function(timeAmount) {
-            return (timeAmount < 10 ? '0' : '') + timeAmount.toString();
-        };
-        var time = addLeadingZero(Math.floor(completedBy / 60)) + ':' +
-                addLeadingZero(completedBy % 60) + ':00';
-        jqDailyTaskRow.find(INPUT_TIME_SELECTOR).val(time);
+        jqDailyTaskRow.find(INPUT_TIME_SELECTOR).val(
+                minutesToTimeString(dailyTasks[i].completedBy));
     }
 }
 
@@ -74,6 +84,8 @@ function restoreDailyTasks(dailyTasks) {
 function saveOptions() {
     var dailyTasks = getDailyTasks();
     var leeway = parseInt($(INPUT_LEEWAY_SELECTOR).val());
+    var startOfDay = timeStringToMinutes($(INPUT_START_OF_DAY_SELECTOR).val());
+    var endOfDay = timeStringToMinutes($(INPUT_END_OF_DAY_SELECTOR).val());
     var shortEventDuration = parseInt($(INPUT_SHORT_EVENT_DURATION_SELECTOR)
             .val());
     var transitionTime = parseInt($(INPUT_TRANSITION_TIME_SELECTOR).val());
@@ -83,6 +95,8 @@ function saveOptions() {
     var colorB = parseInt($(INPUT_COLOR_B).val());
     chrome.storage.sync.set({
         dailyTasks: dailyTasks,
+        startOfDay: startOfDay,
+        endOfDay: endOfDay,
         leeway: leeway,
         shortEventDuration: shortEventDuration,
         transitionTime: transitionTime,
@@ -102,6 +116,8 @@ function restoreOptions() {
     // Default values.
     chrome.storage.sync.get({
         dailyTasks: [],
+        startOfDay: 480,
+        endOfDay: 0,
         leeway: 100,
         shortEventDuration: 30,
         transitionTime: 10,
@@ -111,6 +127,8 @@ function restoreOptions() {
         colorB: 0
     }, function(items) {
         restoreDailyTasks(items.dailyTasks);
+        $(INPUT_START_OF_DAY_SELECTOR).val(minutesToTimeString(items.startOfDay));
+        $(INPUT_END_OF_DAY_SELECTOR).val(minutesToTimeString(items.endOfDay));
         $(INPUT_LEEWAY_SELECTOR).val(items.leeway);
         $(INPUT_SHORT_EVENT_DURATION_SELECTOR).val(items.shortEventDuration);
         $(INPUT_TRANSITION_TIME_SELECTOR).val(items.transitionTime);

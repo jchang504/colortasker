@@ -52,6 +52,9 @@ var MINUTES_IN_DAY = 24 * 60;
 
 // An array of objects with name, duration, and completedBy time.
 var DAILY_TASKS;
+// When the user's day starts and ends, for time remaining calculation.
+var START_OF_DAY;
+var END_OF_DAY;
 // The ideal amount of unallocated extra time per day.
 var IDEAL_LEEWAY;
 // A best guess for the average duration of short events.
@@ -105,7 +108,7 @@ function taskTimeSums() {
 // taking into account the currentTime if isToday.
 // int day : the index (from zero) of the day of the week.
 // boolean isToday : whether the day is today.
-// int currentTime : the current time in minutes elapsed.
+// int currentTime : the current time in minutes.
 function scheduledEventTimeSum(day, isToday, currentTime) {
     var sum = 0;
     var jqDayColumn = $(DAY_COLUMN_SELECTOR_PREFIX + parseInt(day));
@@ -157,7 +160,7 @@ function scheduledEventTimeSum(day, isToday, currentTime) {
 // into account matching scheduled events (and the current time for today).
 // int day : the index (from zero) of the day of the week.
 // boolean isToday : whether the day is today.
-// int currentTime : the current time in minutes elapsed.
+// int currentTime : the current time in minutes.
 function dailyTaskTimeSum(day, isToday, currentTime) {
     var sum = 0;
     var jqScheduledEvents = $(DAY_COLUMN_SELECTOR_PREFIX + parseInt(day))
@@ -184,17 +187,21 @@ function dailyTaskTimeSum(day, isToday, currentTime) {
 
 // Compute the unallocated time in the day, adjusting based on the current time
 // for today.
-// int day : the index (from zero) of the day of the week.
 // boolean isToday : whether the day is today.
-// int currentTime : the current time in minutes elapsed.
+// int currentTime : the current time in minutes.
 // int allocatedTime : the amount of time (in minutes) allocated in the day.
 // Returns: int.
-function computeExtraTime(day, isToday, currentTime, allocatedTime) {
-    var extraTime = MINUTES_IN_DAY - allocatedTime;
+function computeExtraTime(isToday, currentTime, allocatedTime) {
+    var startOfDay = START_OF_DAY;
     if (isToday) {
-        extraTime -= currentTime;
+        var startOfDay = Math.max(START_OF_DAY, currentTime);
     }
-    return extraTime;
+    var endOfDay = END_OF_DAY;
+    if (endOfDay <= START_OF_DAY) {
+        // End of day goes into the next day (e.g. 1am).
+        endOfDay += MINUTES_IN_DAY;
+    }
+    return endOfDay - startOfDay - allocatedTime;
 }
 
 // Format timeAmount into a 2-digit string, adding leading zero if needed.
@@ -255,7 +262,7 @@ function addExtraTimeLabel(day, isToday, extraTime, color) {
     return colorCss + labelCss;
 }
 
-// Get the current local time in minutes elapsed since start of day.
+// Get the current local time in minutes.
 // Returns : int.
 function getCurrentTimeMinutes() {
     var date = new Date();
@@ -278,8 +285,7 @@ function colorDays() {
         var allocatedTime = taskSums[i];
         allocatedTime += scheduledEventTimeSum(i, isToday, currentTime);
         allocatedTime += dailyTaskTimeSum(i, isToday, currentTime);
-        var extraTime = computeExtraTime(i, isToday, currentTime,
-                allocatedTime);
+        var extraTime = computeExtraTime(isToday, currentTime, allocatedTime);
         // Color column.
         var color = computeColor(extraTime);
         css += colSelector + '{background-color:' + color + '}'
@@ -295,6 +301,8 @@ $(window).on("load", function() {
     // Load user's options before we can compute free times.
     chrome.storage.sync.get({
         dailyTasks: [],
+        startOfDay: 480,
+        endOfDay: 0,
         leeway: 100,
         shortEventDuration: 30,
         transitionTime: 10,
@@ -305,6 +313,8 @@ $(window).on("load", function() {
     }, function(items) {
         // Set calculation options.
         DAILY_TASKS = items.dailyTasks;
+        START_OF_DAY = items.startOfDay;
+        END_OF_DAY = items.endOfDay;
         IDEAL_LEEWAY = items.leeway;
         SHORT_EVENT_DURATION = items.shortEventDuration;
         EVENT_TRANSITION_TIME = items.transitionTime;

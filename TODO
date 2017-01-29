@@ -6,16 +6,15 @@ P1:
       dependent on front end, e.g.
         - Handle events with duration <= 40 min (only start time displays, so
           for now we're assuming they have duration 30 min)
-    - Allow customizing day start/end time (beyond midnight)
-    - Recompute on change more elegantly (right now just every 500ms)
+        - Accomodate non-military time
+        - Allow selecting which calendars to count
+        - BUGFIX: support after-midnight completed by times for daily tasks
+    - Support month view
 
 P2:
-    - Stricter validation of times (right now just checks for 2 digits for
-      hours and minutes; should restrict to < 24, < 60)
-    - Support month view
     - Handle overnight events (right now just upper bound end time at midnight)
 
 P3:
+    - Recompute on change more elegantly (right now just every 500ms)
     - Add border or something to indicate current day better, since background
       color change obscures the darker background which normally indicates it
-    - Accomodate non-military time
