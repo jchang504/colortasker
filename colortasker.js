@@ -35,7 +35,7 @@ var BLINKING_KEYFRAMES_CSS =
     '@keyframes blinking { \
         0% { background-color: rgba(' + R_REPLACE_KEY + ',' + G_REPLACE_KEY +
                 ',' + B_REPLACE_KEY + ', 0.6); } \
-        50% { background-color: white; } \
+        50% { background-color: rgba(255, 255, 255, 0.6); } \
         100% { background-color: rgba(' + R_REPLACE_KEY + ',' + G_REPLACE_KEY +
                 ',' + B_REPLACE_KEY + ', 0.6); } \
     }';
